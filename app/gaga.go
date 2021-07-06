@@ -1,8 +1,8 @@
-package gaga
+package app
 
 import (
 	"fmt"
-	"log"
+	"github.com/mcfriend99/gaga/logger"
 	"net/http"
 )
 
@@ -94,8 +94,12 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(request.Response.StatusCode)
 	w.Write([]byte(result))
 
-	// log request
-	log.Printf(`%s "%s %s %s" %d %d "%s - %s" "%s"`,
+	// logs request
+	logMethod := logger.Infof
+	if request.Response.StatusCode < 200 || request.Response.StatusCode >= 399 {
+		logMethod = logger.Warnf
+	}
+	logMethod(`%s "%s %s %s" %d %d "%s - %s" "%s"`,
 		r.RemoteAddr,
 		r.Method,
 		r.RequestURI,
@@ -108,13 +112,32 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
+func (g *Gaga) setupLogging() {
+
+	logger.Init(&logger.Config{
+		LogDir:          g.Config.Log.Path,
+		LogFileMaxSize:  200,
+		LogFileMaxNum:   500,
+		LogFileNumToDel: 50,
+		LogLevel:        logger.LogLevelInfo,
+		LogDest:         logger.LogDestFile,
+		Flag:            logger.ControlFlagLogLineNum,
+	})
+
+	logger.Info("File logging initialized...")
+}
+
 func (g *Gaga) Serve() {
+	if g.Config.Log.Engine == "file" {
+		g.setupLogging()
+	}
+
 	listen := fmt.Sprintf("%s:%d", g.Config.Server.ListenOn, g.Config.Server.Port)
 
 	if !g.Config.Server.Secure {
-		log.Printf("Started serving HTTP on http://%s\n", listen)
+		logger.Infof("Started serving HTTP on http://%s\n", listen)
 	} else {
-		log.Printf("Started serving HTTPS on https://%s\n", listen)
+		logger.Infof("Started serving HTTPS on https://%s\n", listen)
 	}
 
 	if g.Config.Server.Secure {

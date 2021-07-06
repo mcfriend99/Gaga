@@ -1,4 +1,4 @@
-package gaga
+package app
 
 import (
 	"encoding/json"
@@ -27,8 +27,12 @@ type DatabaseConfig struct {
 
 // LogConfig configuration struct
 type LogConfig struct {
-	Engine string `json:"engine"`
-	Path   string `json:"path,omitempty"`
+	Engine       string `json:"engine"`
+	File         string `json:"file,omitempty"`
+	Path         string `json:"path,omitempty"`
+	MaxAge       int    `json:"max_age,omitempty"`
+	RotationTime int64  `json:"rotation_time,omitempty"`
+	CentralFile  string `json:"central_file"`
 }
 
 // Config is the main configuration struct

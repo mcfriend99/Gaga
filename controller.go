@@ -1,7 +1,7 @@
 package main
 
-import "github.com/mcfriend99/gaga/gaga"
+import "github.com/mcfriend99/gaga/app"
 
-func Home(r *gaga.Request) string {
+func Home(r *app.Request) string {
 	return "It works!"
 }

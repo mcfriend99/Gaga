@@ -1,4 +1,4 @@
-package gaga
+package app
 
 type Template struct {
 	Path string

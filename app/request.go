@@ -1,4 +1,4 @@
-package gaga
+package app
 
 // Response struct
 type Response struct {

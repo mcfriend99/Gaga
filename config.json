@@ -2,7 +2,7 @@
   "server": {
     "port": 3000,
     "listen_on": "localhost",
-    "secure": true,
+    "secure": false,
     "tls_certificate_file": "localhost.crt",
     "tls_key_file": "localhost.key"
   },
@@ -14,7 +14,11 @@
     "password": ""
   },
   "log": {
-    "engine": "console",
-    "path": ""
+    "engine": "file",
+    "file": "%Y-%m-%d %H.%M.%S",
+    "path": "data/logs",
+    "max_age": -1,
+    "rotation_time": 86400,
+    "central_file": ""
   }
 }

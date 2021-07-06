@@ -1,4 +1,4 @@
-package gaga
+package app
 
 // Route struct
 type Route struct {
