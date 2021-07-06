@@ -1,0 +1,20 @@
+{
+  "server": {
+    "port": 3000,
+    "listen_on": "localhost",
+    "secure": true,
+    "tls_certificate_file": "localhost.crt",
+    "tls_key_file": "localhost.key"
+  },
+  "database": {
+    "engine": "mongo-db",
+    "host": "localhost",
+    "port": 27001,
+    "username": "",
+    "password": ""
+  },
+  "log": {
+    "engine": "console",
+    "path": ""
+  }
+}
