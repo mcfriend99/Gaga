@@ -5,9 +5,9 @@ import (
 )
 
 func main() {
-	config := app.LoadConfig("config")
+	config := app.LoadConfig()
 	g := app.Gaga{
-		RouteGenerator: Routes,
+		RouteGenerator: Router,
 		Config:         config,
 	}
 	g.Serve()

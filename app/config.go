@@ -46,7 +46,8 @@ type Config struct {
 // LoadConfig loads Gaga configurations from the specified file.
 // It automatically allows environment overrides for dev and production
 // as well as for different users on a device.
-func LoadConfig(name string) *Config {
+func LoadConfig() *Config {
+	name := "config"
 	config := Config{}
 
 	var priority []string
