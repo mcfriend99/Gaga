@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mcfriend99/gaga/logger"
 	"net/http"
+	"strings"
 )
 
 // Gaga main struct
@@ -33,9 +34,11 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			StatusCode:  http.StatusNotFound,
 			ContentType: contentType,
 		},
-		_filesData: make(map[string]interface{}, 0),
-		_postsData: make(map[string]interface{}, 0),
-		_getsData:  make(map[string]interface{}, 0),
+		Writer:      w,
+		BaseRequest: r,
+		_filesData:  make(map[string]interface{}, 0),
+		_postsData:  make(map[string]interface{}, 0),
+		_getsData:   make(map[string]interface{}, 0),
 	}
 
 	// populate request bodies...
@@ -58,11 +61,19 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// match route...
 	result := ""
 	routeFound := false
+	var _route *Route = nil
 
 	if routes, err := routing.Routes[r.Method]; err {
 		for _, route := range routes {
-			if route.Path == r.RequestURI {
-				routeFound = true
+			routeFound = route.Path == r.RequestURI
+
+			// static routes should use a prefix with check.
+			if route.IsStatic {
+				routeFound = strings.HasPrefix(r.RequestURI, route.Path)
+			}
+
+			if routeFound {
+				_route = &route
 				request.Response.StatusCode = http.StatusOK
 				if route.Controller != nil {
 					result = route.Controller(&request)
@@ -80,7 +91,8 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			request.Response.StatusCode = http.StatusOK
 			result = g.NotFoundHandler(&request)
 		} else {
-			result = "404 Not Found"
+			// @TODO: use beautiful template based 404 page.
+			result = "404 page not found"
 		}
 	}
 
@@ -91,8 +103,15 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// @TODO: do automatic content-type detection here...
 	}
-	w.WriteHeader(request.Response.StatusCode)
-	w.Write([]byte(result))
+
+	if _route != nil && _route.IsStatic {
+		// do nothing
+	} else {
+		w.WriteHeader(request.Response.StatusCode)
+	}
+	if result != "" {
+		w.Write([]byte(result))
+	}
 
 	// logs request
 	logMethod := logger.Infof

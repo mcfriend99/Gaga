@@ -9,4 +9,7 @@ import (
 func Router(r *app.Routing) {
 	// home page
 	r.Get("/", controller.Home)
+
+	// serving static page
+	r.Static("/static/", "./static")
 }

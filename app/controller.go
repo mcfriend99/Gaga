@@ -1,5 +1,7 @@
 package app
 
+import "net/http"
+
 type Controller func(*Request) string
 
 // Resource interface is a form of controller that allows
@@ -11,4 +13,10 @@ type Resource interface {
 	Update(r *Request)
 	Delete(r *Request)
 	View(r *Request)
+}
+
+func StaticFileController(r *Request, prefix string, path string) string {
+	handler := http.StripPrefix(prefix, http.FileServer(http.Dir(path)))
+	handler.ServeHTTP(r.Writer, r.BaseRequest)
+	return ""
 }

@@ -1,5 +1,7 @@
 package app
 
+import "net/http"
+
 // Response struct
 type Response struct {
 	Header      map[string]string
@@ -9,10 +11,12 @@ type Response struct {
 
 // Request struct
 type Request struct {
-	URI      string
-	Method   string
-	Header   map[string]string
-	Response Response
+	URI         string
+	Method      string
+	Header      map[string]string
+	Response    Response
+	Writer      http.ResponseWriter
+	BaseRequest *http.Request
 
 	// internal items...
 	_getsData  map[string]interface{}

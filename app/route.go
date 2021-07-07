@@ -4,6 +4,7 @@ package app
 type Route struct {
 	Path       string
 	Controller Controller
+	IsStatic   bool
 }
 
 // Routing struct
@@ -70,4 +71,20 @@ func (r *Routing) Options(path string, controller Controller) {
 // the given path to the given controller.
 func (r *Routing) Head(path string, controller Controller) {
 	r.CreateRoute("OPTIONS", path, controller)
+}
+
+// Static routes a request for static files matching the path to
+// the specified directory
+func (r *Routing) Static(path string, dir string) {
+	if r.Routes["GET"] == nil {
+		r.Routes["GET"] = make([]Route, 0)
+	}
+
+	r.Routes["GET"] = append(r.Routes["GET"], Route{
+		Path: path,
+		Controller: func(r *Request) string {
+			return StaticFileController(r, path, dir)
+		},
+		IsStatic: true,
+	})
 }
