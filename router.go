@@ -11,5 +11,5 @@ func Router(r *app.Routing) {
 	r.Get("/", controller.Home)
 
 	// serving static page
-	r.Static("/static", "./static")
+	r.Static("/static/", "./static")
 }
