@@ -133,23 +133,50 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (g *Gaga) setupLogging() {
 
+	engine := logger.LogDestBoth
+
+	if g.Config.Log.Engine == "file" {
+		engine = logger.LogDestFile
+	} else if g.Config.Log.Engine == "console" {
+		engine = logger.LogDestConsole
+	}
+
+	var flag logger.ControlFlag
+	level := logger.LogLevelInfo
+
+	if g.Config.Log.ShowSource {
+		flag = logger.ControlFlag(int(flag) | int(logger.ControlFlagLogLineNum) | int(logger.ControlFlagLogFuncName))
+	}
+
+	if g.Config.Log.Level == "info" {
+		level = logger.LogLevelInfo
+	} else if g.Config.Log.Level == "error" {
+		level = logger.LogLevelError
+	} else if g.Config.Log.Level == "warn" {
+		level = logger.LogLevelWarn
+	} else if g.Config.Log.Level == "fatal" {
+		level = logger.LogLevelFatal
+	} else if g.Config.Log.Level == "panic" {
+		level = logger.LogLevelPanic
+	} else if g.Config.Log.Level == "trace" {
+		level = logger.LogLevelTrace
+	}
+
 	logger.Init(&logger.Config{
 		LogDir:          g.Config.Log.Path,
 		LogFileMaxSize:  200,
 		LogFileMaxNum:   500,
 		LogFileNumToDel: 50,
-		LogLevel:        logger.LogLevelInfo,
-		LogDest:         logger.LogDestFile,
-		Flag:            logger.ControlFlagLogLineNum,
+		LogLevel:        level,
+		LogDest:         engine,
+		Flag:            flag,
 	})
 
 	logger.Info("File logging initialized...")
 }
 
 func (g *Gaga) Serve() {
-	if g.Config.Log.Engine == "file" {
-		g.setupLogging()
-	}
+	g.setupLogging()
 
 	listen := fmt.Sprintf("%s:%d", g.Config.Server.ListenOn, g.Config.Server.Port)
 

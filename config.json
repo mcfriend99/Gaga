@@ -14,11 +14,9 @@
     "password": ""
   },
   "log": {
-    "engine": "file",
-    "file": "%Y-%m-%d %H.%M.%S",
+    "engine": "console",
     "path": "data/logs",
-    "max_age": -1,
-    "rotation_time": 86400,
-    "central_file": ""
+    "show_source": false,
+    "level": "info"
   }
 }

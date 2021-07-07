@@ -27,12 +27,19 @@ type DatabaseConfig struct {
 
 // LogConfig configuration struct
 type LogConfig struct {
-	Engine       string `json:"engine"`
-	File         string `json:"file,omitempty"`
-	Path         string `json:"path,omitempty"`
-	MaxAge       int    `json:"max_age,omitempty"`
-	RotationTime int64  `json:"rotation_time,omitempty"`
-	CentralFile  string `json:"central_file"`
+	// Engine is the device to log into.
+	//
+	// Options include:
+	//  file, console, both
+	Engine     string `json:"engine"`
+	Path       string `json:"path,omitempty"`
+	ShowSource bool   `json:"show_source,omitempty"`
+
+	// Level is the minimum log level to show.
+	//
+	// Options include:
+	//  info, error, warn, trace, fatal, panic.
+	Level string `json:"level,omitempty"`
 }
 
 // Config is the main configuration struct
