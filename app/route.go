@@ -9,7 +9,8 @@ type Route struct {
 
 // Routing struct
 type Routing struct {
-	Routes map[string][]Route
+	Routes          map[string][]Route
+	_shouldCompress bool
 }
 
 // CreateRoute allows you to create a route for any HTTP method
@@ -82,8 +83,8 @@ func (r *Routing) Static(path string, dir string) {
 
 	r.Routes["GET"] = append(r.Routes["GET"], Route{
 		Path: path,
-		Controller: func(r *Request) string {
-			return StaticFileController(r, path, dir)
+		Controller: func(h *Request) string {
+			return StaticFileController(h, path, dir, r._shouldCompress)
 		},
 		IsStatic: true,
 	})

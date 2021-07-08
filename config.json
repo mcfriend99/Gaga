@@ -20,7 +20,7 @@
     "level": "info"
   },
   "seo": {
-    "compress": false,
+    "compress": true,
     "compression_threshold": 128
   }
 }

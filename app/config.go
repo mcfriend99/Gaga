@@ -53,10 +53,15 @@ type SEOConfig struct {
 	Compress bool `json:"compress,omitempty"`
 
 	// CompressionThreshold is the minimum response size before
-	// response compression sets in.
+	// response compression sets in for non static files.
 	//
-	// For very light data (few bytes), compression may increase the
-	// size of the response.
+	// NOTE:
+	//
+	//  1. Once compression is enabled, all static files will be
+	//     compressed if the request supports it.
+	//
+	//  2. For very light data (few bytes), compression may increase the
+	//     size of the response.
 	CompressionThreshold int `json:"compression_threshold,omitempty"`
 }
 

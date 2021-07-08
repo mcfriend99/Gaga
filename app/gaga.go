@@ -7,6 +7,7 @@ import (
 	"github.com/mcfriend99/gaga/logger"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -20,7 +21,8 @@ type Gaga struct {
 func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// initialize routing
 	routing := Routing{
-		Routes: make(map[string][]Route),
+		Routes:          make(map[string][]Route),
+		_shouldCompress: g.Config.SEO.Compress,
 	}
 
 	// get user routes...
@@ -174,8 +176,10 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	contentLength := len(result)
+
 	if _route != nil && _route.IsStatic {
-		// do nothing
+		contentLength, _ = strconv.Atoi(w.Header().Get("Content-Length"))
 	} else {
 		w.WriteHeader(request.Response.StatusCode)
 	}
@@ -191,7 +195,7 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.RequestURI,
 		r.Proto,
 		request.Response.StatusCode,
-		len(result),
+		contentLength,
 		contentType,
 		responseType,
 		r.UserAgent(),

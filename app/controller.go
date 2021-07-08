@@ -1,6 +1,9 @@
 package app
 
 import (
+	"compress/flate"
+	"compress/gzip"
+	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -45,12 +48,42 @@ func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
 	return f, nil
 }
 
-func StaticFileController(r *Request, prefix string, path string) string {
+// Gzip Compression
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+func StaticFileController(r *Request, prefix string, dir string, compress bool) string {
 	if strings.HasSuffix(prefix, "/") {
 		prefix = prefix[:len(prefix)-1]
 	}
 
-	handler := http.StripPrefix(prefix, http.FileServer(neuteredFileSystem{http.Dir(path)}))
-	handler.ServeHTTP(r.Writer, r.BaseRequest)
+	handler := http.StripPrefix(prefix, http.FileServer(neuteredFileSystem{http.Dir(dir)}))
+
+	writer := r.Writer
+
+	if compress {
+		r.Writer.Header().Add("Vary", "Accept-Encoding")
+		if strings.Contains(r.BaseRequest.Header.Get("Accept-Encoding"), "gzip") {
+			r.Writer.Header().Set("Content-Encoding", "gzip")
+			gz := gzip.NewWriter(r.Writer)
+			defer gz.Close()
+
+			writer = gzipResponseWriter{Writer: gz, ResponseWriter: r.Writer}
+		} else if strings.Contains(r.BaseRequest.Header.Get("Accept-Encoding"), "deflate") {
+			r.Writer.Header().Set("Content-Encoding", "deflate")
+			fw, _ := flate.NewWriter(r.Writer, flate.BestCompression)
+			defer fw.Close()
+
+			writer = gzipResponseWriter{Writer: fw, ResponseWriter: r.Writer}
+		}
+	}
+
+	handler.ServeHTTP(writer, r.BaseRequest)
 	return ""
 }
