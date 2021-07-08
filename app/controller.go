@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type Controller func(*Request) string
+type Controller func(r *Request) string
 
 // Resource interface is a form of controller that allows
 // you to automatically create and bind CRUD operations to

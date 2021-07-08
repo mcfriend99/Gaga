@@ -14,6 +14,7 @@ type Request struct {
 	URI         string
 	Method      string
 	Header      map[string]string
+	Params      map[string]string
 	Response    Response
 	Writer      http.ResponseWriter
 	BaseRequest *http.Request

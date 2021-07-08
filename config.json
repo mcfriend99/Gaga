@@ -18,5 +18,9 @@
     "path": "data/logs",
     "show_source": false,
     "level": "info"
+  },
+  "seo": {
+    "compress": false,
+    "compression_threshold": 128
   }
 }

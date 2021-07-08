@@ -1,9 +1,12 @@
 package app
 
 import (
+	"compress/flate"
+	"compress/gzip"
 	"fmt"
 	"github.com/mcfriend99/gaga/logger"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -17,7 +20,7 @@ type Gaga struct {
 func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// initialize routing
 	routing := Routing{
-		Routes: make(map[string][]Route, 0),
+		Routes: make(map[string][]Route),
 	}
 
 	// get user routes...
@@ -29,16 +32,17 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	request := Request{
 		URI:    r.RequestURI,
 		Method: r.Method,
-		Header: make(map[string]string, 0),
+		Header: make(map[string]string),
+		Params: make(map[string]string),
 		Response: Response{
 			StatusCode:  http.StatusNotFound,
 			ContentType: contentType,
 		},
 		Writer:      w,
 		BaseRequest: r,
-		_filesData:  make(map[string]interface{}, 0),
-		_postsData:  make(map[string]interface{}, 0),
-		_getsData:   make(map[string]interface{}, 0),
+		_filesData:  make(map[string]interface{}),
+		_postsData:  make(map[string]interface{}),
+		_getsData:   make(map[string]interface{}),
 	}
 
 	// populate request bodies...
@@ -63,13 +67,42 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	routeFound := false
 	var _route *Route = nil
 
+	var routesToSearch []Route
+
 	if routes, err := routing.Routes[r.Method]; err {
-		for _, route := range routes {
+		routesToSearch = routes
+	}
+
+	if routes, err := routing.Routes[""]; err {
+		routesToSearch = append(routesToSearch, routes...)
+	}
+
+	if len(routesToSearch) > 0 {
+		for _, route := range routesToSearch {
 			routeFound = route.Path == r.RequestURI
 
 			// static routes should use a prefix with check.
 			if route.IsStatic {
 				routeFound = strings.HasPrefix(r.RequestURI, route.Path)
+			}
+
+			if !routeFound {
+				// do a regex check.
+				// also, this is the only place where we can have route parameters.
+				m := regexp.MustCompile(`{([^}?]+)([?])?}/?`)
+				path := m.ReplaceAllString(route.Path, "(?P<$1>[^/?#]+)$2/?")
+
+				exp := regexp.MustCompile(fmt.Sprintf("^%s$", path))
+				routeFound = exp.MatchString(r.RequestURI)
+
+				if routeFound {
+					match := exp.FindStringSubmatch(r.RequestURI)
+					for i, name := range exp.SubexpNames() {
+						if i != 0 && name != "" {
+							request.Params[name] = match[i]
+						}
+					}
+				}
 			}
 
 			if routeFound {
@@ -97,20 +130,54 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// write response data...
-	responseType := "text/html"
-	if v, e := request.Response.Header["Content-Type"]; e {
-		responseType = v
-	} else {
+	responseType := "text/html; charset=utf-8"
+
+	for key, value := range request.Response.Header {
+		w.Header().Set(key, value)
+		if key == "Content-Type" {
+			responseType = value
+		}
+	}
+
+	/*if _, e := request.Response.Header["Content-Type"]; !e {
 		// @TODO: do automatic content-type detection here...
+	}*/
+
+	w.Header().Set("Content-Type", responseType)
+
+	if result != "" {
+		writer := w.Write
+
+		// only compress objects exceeding 128 byte
+		if g.Config.SEO.Compress && len(result) > g.Config.SEO.CompressionThreshold {
+			w.Header().Add("Vary", "Accept-Encoding")
+
+			// prioritize gzip over deflate
+			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				w.Header().Set("Content-Encoding", "gzip")
+				gz := gzip.NewWriter(w)
+				defer gz.Close()
+
+				writer = gz.Write
+			} else if strings.Contains(r.Header.Get("Accept-Encoding"), "deflate") {
+				w.Header().Set("Content-Encoding", "deflate")
+
+				fw, _ := flate.NewWriter(w, flate.BestCompression)
+				defer fw.Close()
+
+				writer = fw.Write
+			}
+		}
+
+		if _, err := writer([]byte(result)); err != nil {
+			logger.Error("Failed to write response:", err)
+		}
 	}
 
 	if _route != nil && _route.IsStatic {
 		// do nothing
 	} else {
 		w.WriteHeader(request.Response.StatusCode)
-	}
-	if result != "" {
-		w.Write([]byte(result))
 	}
 
 	// logs request

@@ -42,11 +42,30 @@ type LogConfig struct {
 	Level string `json:"level,omitempty"`
 }
 
+// SEOConfig configuration struct
+type SEOConfig struct {
+	// Compress indicates whether to compress output.
+	// The output is only compressed when the requester (most likely
+	// a browser supports it through the Accept-Encoding header.
+	//
+	//  gzip is the default if supported, if not,
+	//  deflate will be attempted if supported.
+	Compress bool `json:"compress,omitempty"`
+
+	// CompressionThreshold is the minimum response size before
+	// response compression sets in.
+	//
+	// For very light data (few bytes), compression may increase the
+	// size of the response.
+	CompressionThreshold int `json:"compression_threshold,omitempty"`
+}
+
 // Config is the main configuration struct
 type Config struct {
 	Server   ServerConfig `json:"server"`
 	Database interface{}  `json:"database,omitempty"`
 	Log      LogConfig    `json:"log,omitempty"`
+	SEO      SEOConfig    `json:"seo,omitempty"`
 	Custom   interface{}  `json:"custom,omitempty"`
 }
 

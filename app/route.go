@@ -88,3 +88,7 @@ func (r *Routing) Static(path string, dir string) {
 		IsStatic: true,
 	})
 }
+
+func (r *Routing) Any(path string, controller Controller) {
+	r.CreateRoute("", path, controller)
+}
