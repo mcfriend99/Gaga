@@ -132,7 +132,7 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// write response data...
-	responseType := "text/html; charset=utf-8"
+	responseType := "text/plain; charset=utf-8"
 
 	for key, value := range request.Response.Header {
 		w.Header().Set(key, value)
