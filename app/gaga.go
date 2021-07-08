@@ -84,7 +84,7 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			routeFound = route.Path == r.RequestURI
 
 			// static routes should use a prefix with check.
-			if route.IsStatic {
+			if route._isStatic {
 				routeFound = strings.HasPrefix(r.RequestURI, route.Path)
 			}
 
@@ -101,6 +101,14 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					match := exp.FindStringSubmatch(r.RequestURI)
 					for i, name := range exp.SubexpNames() {
 						if i != 0 && name != "" {
+							// check param validator
+							if v, e := route._paramValidators[name]; e {
+								if k, e := regexp.MatchString(v, match[i]); e != nil || !k {
+									routeFound = false
+									break
+								}
+							}
+
 							request.Params[name] = match[i]
 						}
 					}
@@ -178,7 +186,7 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	contentLength := len(result)
 
-	if _route != nil && _route.IsStatic {
+	if _route != nil && _route._isStatic {
 		contentLength, _ = strconv.Atoi(w.Header().Get("Content-Length"))
 	} else {
 		w.WriteHeader(request.Response.StatusCode)

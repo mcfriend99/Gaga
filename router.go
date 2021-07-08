@@ -10,6 +10,10 @@ func Router(r *app.Routing) {
 	// home page
 	r.Get("/", controller.Home)
 
+	/*r.Get("/{id}", func(r *app.Request) string {
+		return r.Params["id"]
+	}).Where("id", `\d+`)*/
+
 	// serving static page
 	r.Static("/static/", "./static")
 }
