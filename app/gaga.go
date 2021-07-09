@@ -91,8 +91,8 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if !routeFound {
 				// do a regex check.
 				// also, this is the only place where we can have route parameters.
-				m := regexp.MustCompile(`{([^}?]+)([?])?}/?`)
-				path := m.ReplaceAllString(route.Path, "(?P<$1>[^/?#]+)$2/?")
+				m := regexp.MustCompile(`/{([^}?]+)([?])?}/?`)
+				path := m.ReplaceAllString(route.Path, "/?(?P<$1>[^/?#]+)$2/?")
 
 				exp := regexp.MustCompile(fmt.Sprintf("^%s$", path))
 				routeFound = exp.MatchString(r.RequestURI)
@@ -102,14 +102,19 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					for i, name := range exp.SubexpNames() {
 						if i != 0 && name != "" {
 							// check param validator
-							if v, e := route._paramValidators[name]; e {
+							if v, e := route._paramValidators[name]; e && match[i] != "" {
 								if k, e := regexp.MatchString(v, match[i]); e != nil || !k {
 									routeFound = false
 									break
 								}
 							}
 
-							request.Params[name] = match[i]
+							// use default param if the param is empty
+							if v, e := route._paramDefaults[name]; e && match[i] == "" {
+								request.Params[name] = v
+							} else {
+								request.Params[name] = match[i]
+							}
 						}
 					}
 				}
@@ -139,21 +144,13 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// write response data...
-	responseType := "text/plain; charset=utf-8"
+	contentLength := len(result)
 
-	for key, value := range request.Response.Header {
-		w.Header().Set(key, value)
-		if key == "Content-Type" {
-			responseType = value
-		}
+	if _route != nil && _route._isStatic {
+		contentLength, _ = strconv.Atoi(w.Header().Get("Content-Length"))
+	} else {
+		w.WriteHeader(request.Response.StatusCode)
 	}
-
-	/*if _, e := request.Response.Header["Content-Type"]; !e {
-		// @TODO: do automatic content-type detection here...
-	}*/
-
-	w.Header().Set("Content-Type", responseType)
 
 	if result != "" {
 		writer := w.Write
@@ -184,13 +181,21 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	contentLength := len(result)
+	// write response data...
+	responseType := "text/plain; charset=utf-8"
 
-	if _route != nil && _route._isStatic {
-		contentLength, _ = strconv.Atoi(w.Header().Get("Content-Length"))
-	} else {
-		w.WriteHeader(request.Response.StatusCode)
+	for key, value := range request.Response.Header {
+		w.Header().Set(key, value)
+		if key == "Content-Type" {
+			responseType = value
+		}
 	}
+
+	/*if _, e := request.Response.Header["Content-Type"]; !e {
+		// @TODO: do automatic content-type detection here...
+	}*/
+
+	w.Header().Set("Content-Type", responseType)
 
 	// logs request
 	logMethod := logger.Infof

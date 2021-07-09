@@ -6,6 +6,16 @@ type Route struct {
 	Controller       Controller
 	_isStatic        bool
 	_paramValidators map[string]string
+	_paramDefaults   map[string]string
+}
+
+func _newRoute(path string, controller Controller) Route {
+	return Route{
+		Path:             path,
+		Controller:       controller,
+		_paramValidators: make(map[string]string),
+		_paramDefaults:   make(map[string]string),
+	}
 }
 
 // Where allows specifying a pattern that a named param in a
@@ -16,6 +26,17 @@ type Route struct {
 //  r.Route("/{id}", controller.User).Where("id", `\d+`)
 func (r *Route) Where(name string, test string) *Route {
 	r._paramValidators[name] = test
+	return r
+}
+
+// Default allows setting a default value to an optional named param
+//  in a route whenever missing.
+//
+//  Example:
+//
+//  r.Default("/{id?}", controller.User).Default("id", "10")
+func (r *Route) Default(name string, test string) *Route {
+	r._paramDefaults[name] = test
 	return r
 }
 
@@ -32,12 +53,7 @@ func (r *Routing) CreateRoute(method string, path string, controller Controller)
 		r.Routes[method] = make([]Route, 0)
 	}
 
-	route := Route{
-		Path:             path,
-		Controller:       controller,
-		_paramValidators: make(map[string]string),
-	}
-
+	route := _newRoute(path, controller)
 	r.Routes[method] = append(r.Routes[method], route)
 
 	return &route
@@ -98,14 +114,12 @@ func (r *Routing) Static(path string, dir string) {
 		r.Routes["GET"] = make([]Route, 0)
 	}
 
-	r.Routes["GET"] = append(r.Routes["GET"], Route{
-		Path: path,
-		Controller: func(h *Request) string {
-			return StaticFileController(h, path, dir, r._shouldCompress)
-		},
-		_isStatic:        true,
-		_paramValidators: make(map[string]string),
+	route := _newRoute(path, func(h *Request) string {
+		return StaticFileController(h, path, dir, r._shouldCompress)
 	})
+	route._isStatic = true
+
+	r.Routes["GET"] = append(r.Routes["GET"], route)
 }
 
 // Any allows creation of a route that's bound to all/any request method.
