@@ -4,11 +4,12 @@ import (
 	"compress/flate"
 	"compress/gzip"
 	"fmt"
-	"github.com/mcfriend99/gaga/logger"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/mcfriend99/gaga/logger"
 )
 
 // Gaga main struct
@@ -28,9 +29,6 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// get user routes...
 	g.RouteGenerator(&routing)
 
-	// create request object
-	contentType := r.Header.Get("Content-Type")
-
 	request := Request{
 		URI:    r.RequestURI,
 		Method: r.Method,
@@ -38,7 +36,8 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Params: make(map[string]string),
 		Response: Response{
 			StatusCode:  http.StatusNotFound,
-			ContentType: contentType,
+			ContentType: "",
+			Header:      make(map[string]string),
 		},
 		Writer:      w,
 		BaseRequest: r,
@@ -144,6 +143,14 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// write response data...
+	responseType := "text/html; charset=utf-8"
+	w.Header().Set("Content-Type", responseType)
+
+	for key, value := range request.Response.Header {
+		w.Header().Set(key, value)
+	}
+
 	contentLength := len(result)
 
 	if _route != nil && _route._isStatic {
@@ -156,7 +163,7 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writer := w.Write
 
 		// only compress objects exceeding 128 byte
-		if g.Config.SEO.Compress && len(result) > g.Config.SEO.CompressionThreshold {
+		if g.Config.SEO.Compress && contentLength > g.Config.SEO.CompressionThreshold {
 			w.Header().Add("Vary", "Accept-Encoding")
 
 			// prioritize gzip over deflate
@@ -181,35 +188,18 @@ func (g Gaga) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// write response data...
-	responseType := "text/plain; charset=utf-8"
-
-	for key, value := range request.Response.Header {
-		w.Header().Set(key, value)
-		if key == "Content-Type" {
-			responseType = value
-		}
-	}
-
-	/*if _, e := request.Response.Header["Content-Type"]; !e {
-		// @TODO: do automatic content-type detection here...
-	}*/
-
-	w.Header().Set("Content-Type", responseType)
-
 	// logs request
 	logMethod := logger.Infof
 	if request.Response.StatusCode < 200 || request.Response.StatusCode >= 399 {
 		logMethod = logger.Warnf
 	}
-	logMethod(`%s "%s %s %s" %d %d "%s - %s" "%s"`,
+	logMethod(`%s "%s %s %s" %d %d %s "%s"`,
 		r.RemoteAddr,
 		r.Method,
 		r.RequestURI,
 		r.Proto,
 		request.Response.StatusCode,
 		contentLength,
-		contentType,
 		responseType,
 		r.UserAgent(),
 	)
@@ -259,7 +249,12 @@ func (g *Gaga) setupLogging() {
 	logger.Info("File logging initialized...")
 }
 
+func (g *Gaga) Init() {
+	InitGagaMimes()
+}
+
 func (g *Gaga) Serve() {
+	g.Init()
 	g.setupLogging()
 
 	listen := fmt.Sprintf("%s:%d", g.Config.Server.ListenOn, g.Config.Server.Port)

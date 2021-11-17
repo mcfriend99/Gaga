@@ -4,9 +4,13 @@ import (
 	"compress/flate"
 	"compress/gzip"
 	"io"
+	"mime"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strings"
+
+	"github.com/mcfriend99/gaga/logger"
 )
 
 type Controller func(r *Request) string
@@ -32,7 +36,7 @@ func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
 		return nil, err
 	}
 
-	s, err := f.Stat()
+	s, _ := f.Stat()
 	if s != nil && s.IsDir() {
 		index := filepath.Join(path, "index.html")
 		if _, err := nfs.fs.Open(index); err != nil {
@@ -59,9 +63,10 @@ func (w gzipResponseWriter) Write(b []byte) (int, error) {
 }
 
 func StaticFileController(r *Request, prefix string, dir string, compress bool) string {
-	if strings.HasSuffix(prefix, "/") {
-		prefix = prefix[:len(prefix)-1]
-	}
+	// if strings.HasSuffix(prefix, "/") {
+	// 	prefix = prefix[:len(prefix)-1]
+	// }
+	prefix = strings.TrimSuffix(prefix, "/")
 
 	handler := http.StripPrefix(prefix, http.FileServer(neuteredFileSystem{http.Dir(dir)}))
 
@@ -81,6 +86,18 @@ func StaticFileController(r *Request, prefix string, dir string, compress bool) 
 			defer fw.Close()
 
 			writer = gzipResponseWriter{Writer: fw, ResponseWriter: r.Writer}
+		}
+	}
+
+	if m, _ := regexp.MatchString("[.][a-zA-Z0-9]+$", r.URI); m {
+		index := strings.LastIndex(r.URI, ".")
+		ext := r.URI[index:len(r.URI)]
+		logger.Infof("Checking mime type for %s based on extension %s...", r.URI, ext)
+
+		responseType := mime.TypeByExtension(ext)
+		logger.Infof("Static file mime type = %s", responseType)
+		if responseType != "" {
+			r.Response.Header["Content-Type"] = responseType
 		}
 	}
 

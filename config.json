@@ -14,7 +14,7 @@
     "password": ""
   },
   "log": {
-    "engine": "console",
+    "engine": "file",
     "path": "data/logs",
     "show_source": false,
     "level": "info"
